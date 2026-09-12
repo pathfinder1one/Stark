@@ -1,0 +1,64 @@
+# STARK Model Registry
+# Maps task types and execution modes to Ollama model configs
+
+default_model: "qwen3.5:4b"
+provider: "ollama"
+
+models:
+  # ── Primary Model (all tasks) ────────────────────────────────
+  - id: "qwen3.5:4b"
+    provider: "ollama"
+    display_name: "Qwen3.5 4B (Local, 16K Context)"
+    context_window: 16384         # 16K unlocked context
+    max_output_tokens: 4096       # 4K guaranteed output
+    supports_thinking: true
+    supports_tools: true
+    cost_per_1k_input: 0.0        # free — local
+    cost_per_1k_output: 0.0
+    capabilities:
+      - text
+      - code
+      - reasoning
+      - math
+      - multilingual
+
+# ── Mode → Model Routing ─────────────────────────────────────
+routing:
+  fast:
+    model: "qwen3.5:4b"
+    thinking: false
+    temperature: 0.7
+    max_tokens: 4096
+
+  reasoning:
+    model: "qwen3.5:4b"
+    thinking: true
+    temperature: 0.6
+    max_tokens: 4096
+
+  deep:
+    model: "qwen3.5:4b"
+    thinking: true
+    temperature: 0.6
+    max_tokens: 8192
+
+  autonomous:
+    model: "qwen3.5:4b"
+    thinking: true
+    temperature: 0.5
+    max_tokens: 8192
+
+# ── Agent → Model Overrides (optional) ───────────────────────
+agent_overrides:
+  judge:
+    model: "qwen3.5:4b"
+    temperature: 0.2              # low temp for deterministic scoring
+  verification:
+    model: "qwen3.5:4b"
+    temperature: 0.2
+  coding:
+    model: "qwen3.5:4b"
+    temperature: 0.3
+  math:
+    model: "qwen3.5:4b"
+    temperature: 0.1

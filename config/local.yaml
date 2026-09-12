@@ -1,0 +1,69 @@
+# STARK local configuration
+# All inference is local via Ollama — no cloud, no API keys needed
+
+local_mode: true
+cloud_fallback: false
+
+# ── Ollama ────────────────────────────────────────────────────
+ollama:
+  base_url: "http://localhost:11434"
+  default_model: "qwen3.5:4b"
+  timeout_seconds: 180
+  num_ctx: 16384        # 16,384 tokens context window (8x standard)
+  num_predict: 4096     # Full answer generation guarantee (up to 4K tokens)
+  num_gpu: 99           # Max layers offloaded to NVIDIA RTX 4050
+
+# ── Execution Modes ───────────────────────────────────────────
+execution:
+  default_mode: "fast"       # fast | reasoning | deep | autonomous
+  deep_mode: true
+  autonomous_mode: true
+  autonomous_max_iterations: 10
+
+# ── Quality / Cognitive Loop ──────────────────────────────────
+quality:
+  judge_enabled_for:
+    - reasoning
+    - deep
+    - autonomous
+  verification_enabled_for:
+    - research
+    - coding
+    - math
+    - autonomous
+  judge_pass_threshold: 70     # score out of 100
+  max_revision_attempts: 2
+
+# ── Memory ────────────────────────────────────────────────────
+memory:
+  short_term:
+    backend: "inmemory"        # inmemory | redis
+    ttl_minutes: 120
+    max_turns: 50
+  long_term:
+    enabled: false             # enable with vector store later
+    backend: "chromadb"
+
+# ── RAG ───────────────────────────────────────────────────────
+rag:
+  enabled: false               # enable with document corpus later
+  chunk_size: 512
+  chunk_overlap: 64
+  top_k: 5
+  hybrid_alpha: 0.7            # 0=BM25 only, 1=vector only
+
+# ── Security ──────────────────────────────────────────────────
+security:
+  tool_permissions: "restricted"
+  require_approval_for_external_side_effects: true
+  prompt_injection_guard: true
+  pii_scrubbing: true
+
+# ── API Server ────────────────────────────────────────────────
+api:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+  cors_origins:
+    - "*"
+  request_timeout_seconds: 300

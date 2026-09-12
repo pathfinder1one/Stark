@@ -1,0 +1,9 @@
+# Custom Modelfile for STARK
+# Unlocks 16,384 tokens context window and 4,096 output prediction
+FROM qwen3.5:4b
+
+PARAMETER num_ctx 16384
+PARAMETER num_predict 4096
+PARAMETER temperature 0.7
+PARAMETER top_p 0.95
+PARAMETER top_k 20

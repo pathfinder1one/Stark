@@ -1,0 +1,82 @@
+# STARK Tool & Security Policies
+
+# ── Tool Permissions ──────────────────────────────────────────
+tools:
+  code_executor:
+    enabled: true
+    permission: "restricted"      # sandboxed
+    max_cpu_seconds: 10
+    max_memory_mb: 256
+    allow_network: false
+    allowed_agents:
+      - coding
+      - math
+      - reasoning
+
+  file_processor:
+    enabled: true
+    permission: "restricted"
+    allow_write: false            # read-only in V1
+    allowed_paths:
+      - "./data"
+      - "./output"
+    allowed_agents:
+      - coding
+      - research
+      - document
+
+  web_search:
+    enabled: false                # enable explicitly
+    permission: "requires_approval"
+    max_results: 10
+    allowed_agents:
+      - research
+
+  web_scraper:
+    enabled: false
+    permission: "requires_approval"
+    allowed_agents:
+      - research
+
+  sql_tools:
+    enabled: false
+    permission: "requires_approval"
+    read_only: true
+    allowed_agents:
+      - data
+
+  api_caller:
+    enabled: false
+    permission: "requires_approval"
+    allowed_agents: []
+
+  github_tools:
+    enabled: false
+    permission: "requires_approval"
+    allowed_agents:
+      - coding
+
+  document_tools:
+    enabled: true
+    permission: "restricted"
+    allowed_agents:
+      - research
+      - summarization
+
+# ── Security Gates ────────────────────────────────────────────
+security:
+  prompt_injection_guard: true
+  output_safety_check: true
+  pii_scrubbing_before_persistence: true
+  audit_trail_for_autonomous: true
+  require_user_approval_for:
+    - web_search
+    - api_caller
+    - github_tools
+    - sql_tools
+
+# ── Rate Limiting ─────────────────────────────────────────────
+rate_limits:
+  requests_per_minute: 60
+  tokens_per_minute: 100000
+  autonomous_max_runtime_seconds: 300
