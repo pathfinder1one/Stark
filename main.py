@@ -125,6 +125,17 @@ async def main() -> None:
         help="Ollama server URL",
     )
     parser.add_argument(
+        "--provider", "-p",
+        default="ollama",
+        choices=["ollama", "nvidia"],
+        help="LLM provider: ollama (local) or nvidia (cloud NIM) (default: ollama)",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="API key for cloud providers (e.g. NVIDIA nvapi-...)",
+    )
+    parser.add_argument(
         "--serve",
         action="store_true",
         help="Start the STARK FastAPI server",
@@ -150,8 +161,18 @@ async def main() -> None:
         await server.serve()
         return
 
+    # Select default model based on provider
+    model_to_use = args.model
+    if args.provider == "nvidia" and args.model == "qwen3.5:4b":
+        model_to_use = "moonshotai/kimi-k3"
+
     # Boot the engine
-    engine = STARKEngine(model=args.model, ollama_url=args.ollama_url)
+    engine = STARKEngine(
+        model=model_to_use,
+        provider=args.provider,
+        ollama_url=args.ollama_url,
+        nvidia_key=args.api_key,
+    )
 
     print("Starting STARK...")
     try:

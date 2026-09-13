@@ -37,8 +37,9 @@ class Revisor:
     not a full re-run of the agent pipeline.
     """
 
-    def __init__(self, model: str = "qwen3.5:4b") -> None:
+    def __init__(self, model: str = "qwen3.5:4b", provider: str = "ollama") -> None:
         self._model = model
+        self._provider = provider
         self._agent = ReflectionAgent()
 
     async def revise(
@@ -109,7 +110,7 @@ Please provide:
         result = await self._agent.execute(
             task=revision_prompt,
             context=context,
-            model_provider="ollama",
+            model_provider=self._provider,
             model_name=self._model,
             temperature=0.5,
             max_tokens=2048,

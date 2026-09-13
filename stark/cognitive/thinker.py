@@ -60,8 +60,9 @@ class Thinker:
     In Deep/Auto  → best-fit specialist agent based on task type
     """
 
-    def __init__(self, model: str = "qwen3.5:4b") -> None:
+    def __init__(self, model: str = "qwen3.5:4b", provider: str = "ollama") -> None:
         self._model = model
+        self._provider = provider
 
     async def think(
         self,
@@ -98,13 +99,13 @@ class Thinker:
     # ── Fast path ─────────────────────────────────────────────────────────────
 
     async def _think_fast(self, message: str, memory_context: str = "") -> ThinkResult:
-        """Direct Ollama call — no agent overhead."""
+        """Direct LLM call — no agent overhead."""
         import time
-        from muktiverse.llm.ollama import OllamaProvider
+        from muktiverse.llm.registry import get_provider
         from muktiverse.schemas.llm import LLMRequest, LLMMessage
 
         start = time.perf_counter()
-        provider = OllamaProvider()
+        provider = get_provider(self._provider)
 
         system_content = "You are STARK, a sharp and direct AI assistant. Answer concisely and accurately."
         if memory_context:
@@ -116,7 +117,7 @@ class Thinker:
                 LLMMessage(role="user", content=message),
             ],
             model=self._model,
-            provider="ollama",
+            provider=self._provider,
             max_tokens=4096,
             temperature=0.7,
         )
@@ -168,7 +169,7 @@ class Thinker:
         result: AgentResult = await agent.execute(
             task=message,
             context=context,
-            model_provider="ollama",
+            model_provider=self._provider,
             model_name=self._model,
             temperature=0.6,
             max_tokens=4096,

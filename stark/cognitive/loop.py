@@ -24,11 +24,12 @@ logger = get_logger(__name__)
 
 
 class LocalJudgeAgent(JudgeAgent):
-    """JudgeAgent that strictly uses local Ollama model for evaluation."""
+    """JudgeAgent using the configured provider (Ollama / NVIDIA NIM)."""
 
-    def __init__(self, model: str = "qwen3.5:4b") -> None:
+    def __init__(self, model: str = "qwen3.5:4b", provider: str = "ollama") -> None:
         super().__init__()
         self._judge_model = model
+        self._provider = provider
 
     async def evaluate(
         self,
@@ -49,7 +50,7 @@ Provide your evaluation as a JSON object following the exact format specified in
         result: AgentResult = await self.execute(
             task=evaluation_prompt,
             context=context,
-            model_provider="ollama",
+            model_provider=self._provider,
             model_name=self._judge_model,
             temperature=0.1,
             max_tokens=1024,
@@ -120,17 +121,19 @@ class CognitiveLoop:
     def __init__(
         self,
         model: str = "qwen3.5:4b",
+        provider: str = "ollama",
         max_revisions: int = 2,
         enable_judge: bool = True,
         enable_verification: bool = False,   # Phase 5 — enable with tools
     ) -> None:
         self._model = model
+        self._provider = provider
         self._max_revisions = max_revisions
         self._enable_judge = enable_judge
         self._enable_verification = enable_verification
-        self._thinker = Thinker(model=model)
-        self._revisor = Revisor(model=model)
-        self._judge = LocalJudgeAgent(model=model)
+        self._thinker = Thinker(model=model, provider=provider)
+        self._revisor = Revisor(model=model, provider=provider)
+        self._judge = LocalJudgeAgent(model=model, provider=provider)
 
     async def run(
         self,

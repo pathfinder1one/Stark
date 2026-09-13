@@ -50,13 +50,20 @@ class STARKEngine:
 
     def __init__(
         self,
-        model: str = "qwen3.5:4b",
+        model: str | None = None,
+        provider: str = "ollama",
         ollama_url: str = "http://localhost:11434",
+        nvidia_key: str | None = None,
         max_revisions: int = 2,
         enable_judge: bool = True,
     ) -> None:
-        self._model = model
+        self._provider = provider.lower()
+        if self._provider == "nvidia":
+            self._model = model or "moonshotai/kimi-k3"
+        else:
+            self._model = model or "qwen3.5:4b"
         self._ollama_url = ollama_url
+        self._nvidia_key = nvidia_key
         self._max_revisions = max_revisions
         self._enable_judge = enable_judge
         self._mode_router: ModeRouter | None = None
@@ -67,26 +74,39 @@ class STARKEngine:
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     async def startup(self) -> None:
-        """Bootstrap Ollama config and verify connectivity."""
-        logger.info("stark.engine.starting", model=self._model)
+        """Bootstrap provider config and verify connectivity."""
+        logger.info("stark.engine.starting", provider=self._provider, model=self._model)
 
-        configure_ollama(model=self._model, base_url=self._ollama_url)
-
-        health = await check_ollama_health(self._ollama_url)
-        if not health["connected"]:
-            raise RuntimeError(
-                f"Cannot reach Ollama at {self._ollama_url}. "
-                "Run `ollama serve` and try again."
-            )
-        if not health["model_available"]:
-            raise RuntimeError(
-                f"Model '{self._model}' not found in Ollama. "
-                f"Run: ollama pull {self._model}"
-            )
+        if self._provider == "nvidia":
+            from stark.adapters.nvidia_adapter import configure_nvidia, check_nvidia_health
+            configure_nvidia(api_key=self._nvidia_key, model=self._model)
+            health = await check_nvidia_health(api_key=self._nvidia_key, model=self._model)
+            if not health["connected"] or not health["authorized"]:
+                raise RuntimeError(
+                    f"Cannot authenticate with NVIDIA NIM API: {health.get('error') or 'Authorization failed'}"
+                )
+            available_models = [self._model]
+            log_meta = {"provider": "nvidia", "endpoint": "https://integrate.api.nvidia.com/v1"}
+        else:
+            configure_ollama(model=self._model, base_url=self._ollama_url)
+            health = await check_ollama_health(self._ollama_url)
+            if not health["connected"]:
+                raise RuntimeError(
+                    f"Cannot reach Ollama at {self._ollama_url}. "
+                    "Run `ollama serve` and try again."
+                )
+            if not health["model_available"]:
+                raise RuntimeError(
+                    f"Model '{self._model}' not found in Ollama. "
+                    f"Run: ollama pull {self._model}"
+                )
+            available_models = health["models"]
+            log_meta = {"provider": "ollama", "ollama": self._ollama_url}
 
         from stark.cognitive.loop import CognitiveLoop
         self._cognitive_loop = CognitiveLoop(
             model=self._model,
+            provider=self._provider,
             max_revisions=self._max_revisions,
             enable_judge=self._enable_judge,
         )
@@ -96,10 +116,10 @@ class STARKEngine:
         logger.info(
             "stark.engine.ready",
             model=self._model,
-            ollama=self._ollama_url,
-            available_models=health["models"],
+            available_models=available_models,
             judge_enabled=self._enable_judge,
             max_revisions=self._max_revisions,
+            **log_meta,
         )
 
     def is_ready(self) -> bool:
